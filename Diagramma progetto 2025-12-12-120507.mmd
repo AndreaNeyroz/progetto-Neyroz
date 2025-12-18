@@ -1,0 +1,69 @@
+erDiagram
+    Candidati ||--|{ Candidature : Inviano
+    Candidati ||--|{Competenze : possiede
+    Aziende ||--|{Annunci_lavoro: Creano
+    Candidati ||--|{Aziende:contattano
+    Annunci_lavoro ||--|{Contratti:creano
+    Annunci_lavoro ||--|{Competenze:richiedono
+    Annunci_lavoro||--|{Candidature:fatte
+    Candidature||--|{Colloqui:fa
+    Messaggio||--o{Candidature:msg
+    Competenze ||--o{Categorie_Competenze:appartengono
+    Aziende}|--o{Settori:appartiene
+    Contratti||--o{Settori:appartiene
+    Annunci_lavoro}|--o{Competenze:Richiede
+
+
+    Candidati {
+        string codF Pk
+        string link_CV
+        string esperienze
+    }
+    Candidature {
+        int codCand Pk
+        date dataCandidatura
+    }
+    Competenze{
+        int codCr Pk
+        string nome
+    }
+    Categorie_Competenze {
+        int codCat Pk
+        string nomeCat
+    }
+    Aziende{
+        int codA
+        string ragioneSociale
+        string ind_via
+        int ind_civ
+        string ind_citta
+        "aggiungere roba"
+    }
+    Settori {
+        int codSett Pk
+        string nomeSettore
+    }
+    Annunci_lavoro{
+       string codAnl Pk
+       string Ral
+       string requisiti
+       string descrizione 
+       int durataContratto
+    }
+    Contratti{
+        int codC Pk
+        int gFerie
+        int nOre_settimanali
+        string nomeContratto
+    }
+
+    Colloqui{
+        int codQ Pk
+        bool esito
+    }
+    Messaggio{
+        int codM Pk
+        string contenuto
+        timestamp dataOra_invio
+        bool utente "T = messaggio dall'utente / F = messaggio dall'azienda"
+    }
