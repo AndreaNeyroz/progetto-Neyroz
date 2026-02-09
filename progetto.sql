@@ -5,6 +5,10 @@ USE recruiting_db;
 CREATE TABLE Candidati (
     codF VARCHAR(16) PRIMARY KEY,
     link_CV VARCHAR(200) NOT NULL,
+	nome VARCHAR (20) NOT NULL,
+	cognome VARCHAR (20) NOT NULL,
+	dataNascita DATE NOT NULL,
+	genere ENUM ("m","f"),
     esperienze TEXT
 );
 
@@ -16,6 +20,7 @@ CREATE TABLE Candidature (
     dataCandidatura DATE NOT NULL,
     FOREIGN KEY (codF) REFERENCES Candidati(codF)
         ON DELETE CASCADE
+		ON UPDATE CASCADE
 	
 	
 	
@@ -32,6 +37,7 @@ CREATE TABLE Competenze (
     codCat INT NOT NULL,
     FOREIGN KEY (codCat) REFERENCES Categorie_Competenze(codCat)
         ON DELETE CASCADE
+		ON UPDATE CASCADE
 );
 
 CREATE TABLE Aziende (
@@ -50,8 +56,8 @@ CREATE TABLE Settori (
 
 CREATE TABLE Contratti (
     codC INT PRIMARY KEY AUTO_INCREMENT,
-    gFerie INT CHECK (gFerie >= 0),
-    nOre_settimanali INT CHECK (nOre_settimanali > 0),
+    gFerie INT UNSIGNED,
+    nOre_settimanali INT UNSIGNED,
     nomeContratto VARCHAR(100) NOT NULL
 );
 
@@ -64,9 +70,15 @@ CREATE TABLE Annunci_lavoro (
     codA INT NOT NULL,
     codSett INT NOT NULL,
     codC INT NOT NULL,
-    FOREIGN KEY (codA) REFERENCES Aziende(codA),
-    FOREIGN KEY (codSett) REFERENCES Settori(codSett),
+    FOREIGN KEY (codA) REFERENCES Aziende(codA)
+	    ON DELETE CASCADE
+		ON UPDATE CASCADE,
+    FOREIGN KEY (codSett) REFERENCES Settori(codSett)
+	    ON DELETE CASCADE
+		ON UPDATE CASCADE,
     FOREIGN KEY (codC) REFERENCES Contratti(codC)
+	    ON DELETE CASCADE
+		ON UPDATE CASCADE
 );
 
 CREATE TABLE Colloqui (
@@ -75,6 +87,7 @@ CREATE TABLE Colloqui (
     esito BOOLEAN,
     FOREIGN KEY (codCand) REFERENCES Candidature(codCand)
         ON DELETE CASCADE
+		ON UPDATE CASCADE
 );
 
 CREATE TABLE Messaggio (
@@ -85,4 +98,5 @@ CREATE TABLE Messaggio (
     utente BOOLEAN NOT NULL,
     FOREIGN KEY (codQ) REFERENCES Colloqui(codQ)
         ON DELETE CASCADE
+		ON UPDATE CASCADE
 );
