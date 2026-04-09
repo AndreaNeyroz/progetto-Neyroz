@@ -1,90 +1,50 @@
 <?php
-include("inc/datiConnessione.php");
-try{
+try {
     include("inc/startConn.php");
-    $errors = array();
-    $empty = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-
-    function controlla($campo, $messaggio_errore, & $errors){
-
-        if(isset($_POST[$campo]) && trim($_POST[$campo]) != "") {
-            return true;
-        }
-        else {
-            $errors[] = $messaggio_errore;
-            return false;
-        }
-    }
-
-    /*
-     *
-     * Validiamo l'input ricevuto dal client
-     * 
-     * Dal client ci aspettiamo: 
-     * - nome
-     * - cognome
-     * - username
-     * - email
-     * - password(hash)
-     * 
-     * Tutti i campi sono obbligatori, in più dobbiamo controllare che l'email sia formalmente corretta
-     * 
-     */
-
-    controlla("nome", "E necessario inserire un nome", $errors);
-    controlla("cognome", "E necessario inserire un cognome", $errors);
-    if(controlla("email", "E necessario inserire una email", $errors)){
-        if(!filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
-            $errors[] = "L'email: " . $_POST['email'] . " non è valida\n";
-        }
-    }
-    controlla("password", "E necessario inserire una password", $errors);
-
-
-    if(count($errors) > 0){
-        die(var_dump($errors));
-    }
-
-    /*
-     *
-     * Dopo aver verificato la correttezza dei dati ricevuti dal client
-     * 
-     * Generiamo il salt casualmente
-     * 
-     * Lo concateniamo all'hash ricevuto
-     * 
-     * Generiamo l'hash finale
-     * 
-     */
-
-    if(strlen($_POST["password"]) != 64 || $_POST["password"] === hash('sha256', '')){
-        die("Hash password non valido");
-    }
-
-    $salt = hash('sha256', rand());
-
-    //var_dump($_POST);
-
-    echo "<br>Salt:" . $salt;
-
-    $salt_div = str_split($salt, strlen($salt)/2);
     
-    $saved_pwd = hash('sha256', $salt_div[0].$_POST['password'].$salt_div[1]);
+    // Recupero tipo e email
+    $tipo = $_POST['opzioni'];
+    $email = ($tipo == "Utente") ? $_POST['email'] : $_POST['email_aziendale'];
 
-    /*
-     *
-     *Eseguiamo la query per inserire l'utente del db 
-     * 
-     */
+    // Hashing Password (Server-side)
+    $pass_chiaro = $_POST['password'];
+    $pass_hash_client = hash('sha256', $pass_chiaro); 
+    $salt = hash('sha256', (string)rand());
+    $salt_div = str_split($salt, strlen($salt)/2);
+    $final_pwd = hash('sha256', $salt_div[0] . $pass_hash_client . $salt_div[1]);
 
-    $sql = "INSERT INTO utenti (nome, cognome, username, email, password, salt) VALUE ('$_POST[nome]', '$_POST[cognome]', '$_POST[username]', '$_POST[email]', '$saved_pwd', '$salt')";
+    $conn->beginTransaction();
 
-    $results = $conn->query($sql);
-	
-	header("Location: profile.php");
+    // 1. Tabella utenti
+    $n_padre = ($tipo == "Utente") ? $_POST['nome'] : $_POST['nome_azienda'];
+    $c_padre = ($tipo == "Utente") ? $_POST['cognome'] : "Azienda";
 
-}catch(PDOException $e) {
-    // stampando il messaggio di errore
-    echo "<h2 style='color:red; font-weight:bold'>".$e->getMessage()."</h2>";
+    $stmtU = $conn->prepare("INSERT INTO utenti (nome, cognome, username, email, password, salt) VALUES (?, ?, ?, ?, ?, ?)");
+    $stmtU->execute([$n_padre, $c_padre, $_POST['username'], $email, $final_pwd, $salt]);
+    
+    $last_id = $conn->lastInsertId();
+
+    // 2. Tabelle Figlie
+    if ($tipo == "Utente") {
+        $gen = (strtolower($_POST['genere']) == "m") ? "m" : "f";
+        $stmtC = $conn->prepare("INSERT INTO Candidati (codF, link_CV, dataNascita, genere, esperienze, numeroTelefono, FkidUtenti) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmtC->execute([$_POST['codice_fiscale'], $_POST['link_cv'], $_POST['data_nascita'], $gen, $_POST['esperienze'], $_POST['telefono'], $last_id]);
+    } else {
+        $stmtA = $conn->prepare("INSERT INTO Aziende (nomeAzienda, ragioneSociale, ind_via, ind_civ, ind_citta, cap, FkidUtenti) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmtA->execute([$_POST['nome_azienda'], $_POST['ragione_sociale'], $_POST['via'], $_POST['civico'], $_POST['citta'], $_POST['cap'], $last_id]);
+    }
+
+    $conn->commit();
+
+    // Messaggio finale invece del reindirizzamento per evitare loop
+    echo "<div style='color:white; text-align:center; padding:50px; background:#222; font-family:sans-serif;'>";
+    echo "<h2>Registrazione completata con successo!</h2>";
+    echo "<p>Benvenuto, " . htmlspecialchars($_POST['username']) . "</p>";
+    echo "<a href='login_utenti.php' style='color:cyan;'>Clicca qui per andare al Login</a>";
+    echo "</div>";
+
+} catch (Exception $e) {
+    if (isset($conn)) $conn->rollBack();
+    die("Errore critico: " . $e->getMessage());
 }
 ?>

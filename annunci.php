@@ -1,4 +1,4 @@
-<html>
+s<html>
   <head>
 	<title>Annunci</title>
 	<link rel='css/styles.css' />
